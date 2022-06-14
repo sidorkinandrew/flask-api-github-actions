@@ -1,7 +1,7 @@
 import json
 import os
 
-from flask import Flask, jsonify, request
+from flask import Flask, jsonify, request, render_template
 from flask_sqlalchemy import SQLAlchemy
 import dotenv
 from sqlalchemy import MetaData, create_engine
@@ -70,12 +70,10 @@ class StudentSchema(Schema):
     age = fields.Integer()
     cellphone = fields.Str()
 
-student_schema =  StudentSchema
+student_schema = StudentSchema
 
-@app.route('/api', methods = ['GET'])
 def homemade_api_doc():
     descriptions = {
-
     }
     result = {}
     for i, map_object in enumerate(app.url_map.iter_rules()):  # app.url_map._rules
@@ -93,6 +91,14 @@ def homemade_api_doc():
     result['Declared_Schema'] = schema_stripped
     print(result)
     return jsonify(result), 200
+
+
+@app.route('/api', methods = ['GET'])
+def homemade_api_doc():
+    # result = json.load(open('static/openapi.json'))
+    # return jsonify(result), 200
+    return render_template('swaggerui.html')
+
 
 @app.route('/api/students', methods=['GET'])
 def get_all_students():
@@ -142,4 +148,4 @@ if __name__ == "__main__":
     if not database_exists(engine.url):
         create_database(engine.url)
     db.create_all()
-    app.run(debug=True)
+    app.run(host="0.0.0.0", debug=True)
