@@ -1,7 +1,8 @@
 import json
 import os
+import inspect
 
-from flask import Flask, jsonify, request, render_template
+from flask import Flask, jsonify, request, render_template, Response
 from flask_sqlalchemy import SQLAlchemy
 import dotenv
 from sqlalchemy import MetaData, create_engine
@@ -11,20 +12,22 @@ from sqlalchemy.orm.attributes import InstrumentedAttribute
 
 
 dotenv.load_dotenv()
-db_user = os.environ.get('DB_USERNAME')
-db_pass = os.environ.get('DB_PASSWORD')
-db_hostname = os.environ.get('DB_HOSTNAME')
-db_name = os.environ.get('DB_NAME')
+db_user = os.environ.get("DB_USERNAME")
+db_pass = os.environ.get("DB_PASSWORD")
+db_hostname = os.environ.get("DB_HOSTNAME")
+db_name = os.environ.get("DB_NAME")
 
-DB_URI = 'mysql+pymysql://{db_username}:{db_password}@{db_host}/{database}'.format(db_username=db_user, db_password=db_pass, db_host=db_hostname, database=db_name)
+DB_URI = "mysql+pymysql://{db_username}:{db_password}@{db_host}/{database}".format(
+    db_username=db_user, db_password=db_pass, db_host=db_hostname, database=db_name
+)
 
 # init the DB driver
 engine = create_engine(DB_URI, echo=True)
 
 # init Flask and SQLAlchemy
 app = Flask(__name__)
-app.config['SQLALCHEMY_DATABASE_URI'] = DB_URI
-app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+app.config["SQLALCHEMY_DATABASE_URI"] = DB_URI
+app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 db = SQLAlchemy(app)
 
 # SQLAlchemy ORM object
@@ -39,7 +42,7 @@ class Student(db.Model):
     @classmethod
     def get_all(cls):
         return cls.query.all()
-    
+
     @classmethod
     def get_by_id(cls, id):
         return cls.query.get_or_404(id)
@@ -62,6 +65,7 @@ class Student(db.Model):
         db.session.delete(self)
         db.session.commit()
 
+
 # init marshmallow object
 class StudentSchema(Schema):
     id = fields.Integer(required=True)
@@ -70,79 +74,123 @@ class StudentSchema(Schema):
     age = fields.Integer()
     cellphone = fields.Str()
 
+
 student_schema = StudentSchema
 
-def homemade_api_doc():
-    descriptions = {
+
+@app.route("/api", methods=["GET"])
+def generate_swagger_api_doc():
+    return_code = 200
+    result = json.load(open("static/openapi.json"))
+    result["paths"] = {}
+    source_code = {}
+    data_body = [
+        {
+            "in": "body",
+            "name": "body",
+            "description": "Student object",
+            "required": True,
+            "schema": {"$ref": "#/definitions/Student"},
+        }
+    ]
+    student_id = {
+        "name": "id",
+        "in": "path",
+        "description": "ID of the Student",
+        "required": True,
+        "type": "integer",
     }
-    result = {}
-    for i, map_object in enumerate(app.url_map.iter_rules()):  # app.url_map._rules
-        rule = map_object.__getattribute__('rule')
-        result[rule] = {}
-        result[rule]['API_Endpoint'] = rule
-        result[rule]['API_Endpoint_Name'] = map_object.__getattribute__('endpoint')
-        #arguments = list(map_object.__getattribute__('arguments'))
-        result[rule]['URL_Arguments'] = list(map_object.__getattribute__('arguments')) # {} if len(arguments) == 0 else arguments
-        result[rule]['Accepted_Methods'] = list(map_object.__getattribute__('methods'))
-    result['Example_Values'] = student_schema().load({'id':0, 'name':'Sample Name', 'email': 'some@email.com', 'cellphone':'123456789', 'age':111})
-    schema_stripped = {}
-    for akey, value in student_schema.__dict__['_declared_fields'].items():
-        schema_stripped[akey] = str(value).split("(dump_default=")[0][1:]
-    result['Declared_Schema'] = schema_stripped
-    print(result)
-    return jsonify(result), 200
+    # put/patch need: student_id + data_body
+    # get/delete need: student_id
+    # add only data_body
+    for i, map_object in enumerate(app.url_map.iter_rules()):
+        rule = map_object.__getattribute__("rule")
+        if "/static" in rule:
+            continue
+        rule = rule if "<int:id>" not in rule else rule.replace("<int:id>", "{id}")
+        method = list(
+            set(map_object.__getattribute__("methods")) - set(["OPTIONS", "HEAD"])
+        )[0].lower()
+        operationId = map_object.__getattribute__("endpoint")
+        source_code[rule] = "".join(inspect.getsource(eval(operationId))).replace("\n", " ")
+        status_code = source_code[rule].split("return_code = ")[1].split(" ")[0]
+        parameters = list(map_object.__getattribute__("arguments"))
+        parameters = (
+            parameters[0] if len(parameters) > 0 else []
+        )  # we know that only 'id' is present
+        result["paths"][rule] = {
+            method: {
+                "tags": ["student"],
+                "produces": ["application/json"],
+                "responses": {
+                    status_code: {"description": "the operation was successful"}
+                },
+            }
+        }
+        if "change" in rule or "modify" in rule:
+            result["paths"][rule][method]["parameters"] = data_body[:]
+            result["paths"][rule][method]["parameters"].append(student_id)
+        elif "add" in rule:
+            result["paths"][rule][method]["parameters"] = data_body[:]
+        elif "delete" in rule or "get" in rule:
+            result["paths"][rule][method]["parameters"] = [student_id]
+    json.dump(result, open("static/openapi.json", "w"))
+    return render_template("swaggerui.html"), return_code
 
 
-@app.route('/api', methods = ['GET'])
-def homemade_api_doc():
-    # result = json.load(open('static/openapi.json'))
-    # return jsonify(result), 200
-    return render_template('swaggerui.html')
-
-
-@app.route('/api/students', methods=['GET'])
+@app.route("/api/students", methods=["GET"])
 def get_all_students():
+    return_code = 200
     students = Student.get_all()
     student_list = student_schema(many=True)
     response = student_list.dump(students)
-    return jsonify(response), 200
+    return jsonify(response), return_code
 
-@app.route('/api/students/get/<int:id>', methods = ['GET'])
+
+@app.route("/api/students/get/<int:id>", methods=["GET"])
 def get_student(id):
+    return_code = 200
     student_info = Student.get_by_id(id)
     serializer = student_schema()
     response = serializer.dump(student_info)
-    return jsonify(response), 200
+    return jsonify(response), return_code
 
-@app.route('/api/students/modify/<int:id>', methods = ['PATCH'])
-@app.route('/api/students/change/<int:id>', methods = ['PUT'])
+
+@app.route("/api/students/modify/<int:id>", methods=["PATCH"])
+@app.route("/api/students/change/<int:id>", methods=["PUT"])
 def update_student(id):
+    return_code = 200
     student_info = Student.get_by_id(id)
     json_data = request.get_json()
     student_info.update(json_data)
     serializer = student_schema()
     response = serializer.dump(student_info)
-    return jsonify(response), 200
+    return jsonify(response), return_code
 
-@app.route('/api/students/delete/<int:id>', methods = ['DELETE'])
+
+@app.route("/api/students/delete/<int:id>", methods=["DELETE"])
 def delete_student(id):
+    return_code = 204
     student_info = Student.get_by_id(id)
     student_info.delete()
-    return {}, 204
+    return {}, return_code
 
-@app.route('/api/students/add', methods = ['POST'])
+
+@app.route("/api/students/add", methods=["POST"])
 def add_student():
+    return_code = 201
     json_data = request.get_json()
     new_student = Student(
-        name= json_data.get('name'),
-        email=json_data.get('email'),
-        age=json_data.get('age'),
-        cellphone=json_data.get('cellphone')
+        name=json_data.get("name"),
+        email=json_data.get("email"),
+        age=json_data.get("age"),
+        cellphone=json_data.get("cellphone"),
     )
     new_student.save()
     serializer = student_schema()
     data = serializer.dump(new_student)
-    return jsonify(data), 201
+    return jsonify(data), return_code
+
 
 if __name__ == "__main__":
     if not database_exists(engine.url):
