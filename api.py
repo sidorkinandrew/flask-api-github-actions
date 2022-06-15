@@ -1,6 +1,7 @@
 import json
 import os
 import inspect
+import re
 
 from flask import Flask, jsonify, request, render_template, Response
 from flask_sqlalchemy import SQLAlchemy
@@ -83,6 +84,7 @@ def generate_swagger_api_doc():
     return_code = 200
     result = json.load(open("static/openapi.json"))
     result["paths"] = {}
+    result['servers'][0]['url'] = "http://"+request.headers.get('Host')+"/"
     source_code = {}
     data_body = [
         {
@@ -100,9 +102,9 @@ def generate_swagger_api_doc():
         "required": True,
         "type": "integer",
     }
-    # put/patch need: student_id + data_body
-    # get/delete need: student_id
-    # add only data_body
+    # "put"/"patch" need: student_id + data_body
+    # "get"/"delete" need: student_id
+    # "add" - only data_body
     for i, map_object in enumerate(app.url_map.iter_rules()):
         rule = map_object.__getattribute__("rule")
         if "/static" in rule:
@@ -112,12 +114,14 @@ def generate_swagger_api_doc():
             set(map_object.__getattribute__("methods")) - set(["OPTIONS", "HEAD"])
         )[0].lower()
         operationId = map_object.__getattribute__("endpoint")
-        source_code[rule] = "".join(inspect.getsource(eval(operationId))).replace("\n", " ")
+        source_code[rule] = "".join(inspect.getsource(eval(operationId))).replace(
+            "\n", " "
+        )
         status_code = source_code[rule].split("return_code = ")[1].split(" ")[0]
         parameters = list(map_object.__getattribute__("arguments"))
         parameters = (
             parameters[0] if len(parameters) > 0 else []
-        )  # we know that only 'id' is present
+        )  # we know that only 'id' is present in the path
         result["paths"][rule] = {
             method: {
                 "tags": ["student"],
@@ -156,8 +160,8 @@ def get_student(id):
     return jsonify(response), return_code
 
 
-@app.route("/api/students/modify/<int:id>", methods=["PATCH"])
 @app.route("/api/students/change/<int:id>", methods=["PUT"])
+@app.route("/api/students/modify/<int:id>", methods=["PATCH"])
 def update_student(id):
     return_code = 200
     student_info = Student.get_by_id(id)
