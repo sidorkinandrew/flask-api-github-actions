@@ -141,6 +141,15 @@ def generate_swagger_api_doc():
     json.dump(result, open("static/openapi.json", "w"))
     return render_template("swaggerui.html"), return_code
 
+@app.route("/api/health-check/ok", methods=["GET"])
+def health_check_ok():
+    return_code = 200
+    return {}, return_code
+
+@app.route("/api/health-check/bad", methods=["GET"])
+def health_check_bad():
+    return_code = 500
+    return {}, return_code
 
 @app.route("/api/students", methods=["GET"])
 def get_all_students():
