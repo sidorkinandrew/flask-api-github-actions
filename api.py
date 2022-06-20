@@ -14,9 +14,9 @@ from sqlalchemy.orm.attributes import InstrumentedAttribute
 
 dotenv.load_dotenv()
 db_user = os.environ.get("DB_USERNAME")
-db_pass = os.environ.get("DB_PASSWORD")
+db_pass = os.environ.get("MYSQL_ROOT_PASSWORD")
 db_hostname = os.environ.get("DB_HOSTNAME")
-db_name = os.environ.get("DB_NAME")
+db_name = os.environ.get("MYSQL_DATABASE")
 
 DB_URI = "mysql+pymysql://{db_username}:{db_password}@{db_host}/{database}".format(
     db_username=db_user, db_password=db_pass, db_host=db_hostname, database=db_name
@@ -205,8 +205,9 @@ def add_student():
     return jsonify(data), return_code
 
 
+if not database_exists(engine.url):
+    create_database(engine.url)
+db.create_all()
+
 if __name__ == "__main__":
-    if not database_exists(engine.url):
-        create_database(engine.url)
-    db.create_all()
     app.run(host="0.0.0.0", debug=True)
