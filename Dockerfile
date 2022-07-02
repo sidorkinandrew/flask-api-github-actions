@@ -4,6 +4,7 @@ FROM python:3.10.5-slim-buster
 # add flaskapi user
 RUN useradd flaskapi
 
+
 # set working directory
 WORKDIR /home/flaskapi
 
@@ -20,5 +21,7 @@ RUN pip3 install -r ./requirements.txt
 COPY . .
 
 EXPOSE 8000
+
 # start gunicorn
+USER flaskapi
 ENTRYPOINT ["sh","./gunicorn_starter.sh"]
