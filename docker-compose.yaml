@@ -29,7 +29,7 @@ services:
   db:
     image: mysql:8-debian
     restart: always
-    container_name: flask_db
+    container_name: ${DB_HOSTNAME}
     ports:
       - "3307:3306"
     env_file: .env

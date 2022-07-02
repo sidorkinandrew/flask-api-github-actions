@@ -11,6 +11,12 @@
 git clone https://github.com/sidorkinandrew/flask-api.git && cd flask-api
 ```
 
+- use the provided file with the required environment variables
+
+```bash
+cp .env.example .env
+```
+
 - run docker-compose to build the flask_api image and create the services
 
 ```bash

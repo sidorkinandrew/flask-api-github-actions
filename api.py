@@ -13,8 +13,8 @@ from sqlalchemy.orm.attributes import InstrumentedAttribute
 
 
 dotenv.load_dotenv()
-db_user = os.environ.get("DB_USERNAME")
-db_pass = os.environ.get("MYSQL_ROOT_PASSWORD")
+db_user = os.environ.get("MYSQL_USER")
+db_pass = os.environ.get("MYSQL_PASSWORD")
 db_hostname = os.environ.get("DB_HOSTNAME")
 db_name = os.environ.get("MYSQL_DATABASE")
 
