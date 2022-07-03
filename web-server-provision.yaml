@@ -2,7 +2,8 @@
   remote_user: ubuntu
   become: true
   gather_facts: true
-
+  vars:
+    - destdir: /app
   tasks:
     - name: Update all packages
       apt:
@@ -20,6 +21,7 @@
           - htop
           - wget
           - mc
+          - git
 
     - name: Add Docker GPG apt Key
       apt_key:
@@ -43,8 +45,41 @@
         state: latest
         update_cache: true
 
+    - name: Add "ubuntu" user to the "docker" group
+      remote_user: ubuntu
+      user:
+        name: "ubuntu"
+        group: "docker"
+        append: yes
+
     - name: Install docker-compose from official github repo
       get_url:
         url : https://github.com/docker/compose/releases/download/1.29.2/docker-compose-Linux-x86_64
         dest: /usr/local/bin/docker-compose
         mode: 'u+x,g+x'
+
+    - name: Download the Flask REST API code from the GitRepo
+      become: yes
+      git:
+        repo: 'https://github.com/sidorkinandrew/flask-api.git'
+        dest: "/{{ destdir }}"
+
+#    - name: stat .env
+#      stat: path="{{ destdir }}/.env"
+#      register: dotenv_stat
+
+    - name: Move the src file to dest
+      command: mv "/{{ destdir }}/.env.example" "/{{ destdir }}/.env"
+      args:
+        removes: "/{{ destdir }}/.env.example"
+        creates: "/{{ destdir }}/.env"
+
+#    - name: Move .env.example to .env
+#      command: creates="{{ destdir}}/.env" mv "{{ destdir}}/.env.example" "{{ destdir}}/.env"
+#      when: dotnet_stat.stat.exists
+
+    - name: Run the stack of containers via docker-compose
+      become: True
+      shell:
+        cmd: "docker-compose -f docker-compose.yaml up -d"
+        chdir: /app/
