@@ -1,4 +1,8 @@
-.terraform
+.env
+venv/
+.vscode/
+__pycache__/
 .terraform.lock.hcl
+.terraform/
 terraform.tfstate
 terraform.tfstate.backup
