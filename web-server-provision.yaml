@@ -29,7 +29,7 @@
 
     - name: Add Docker Repository
       apt_repository:
-        repo: "deb [arch={{ ansible_architecture }} signed_by=/etc/apt/trusted.gpg.d/docker.gpg] https://download.docker.com/linux/{{ ansible_distribution | lower }} {{ ansible_distribution_release }} stable"
+        repo: "deb https://download.docker.com/linux/{{ ansible_distribution | lower }} {{ ansible_distribution_release }} stable"
         filename: docker
         state: present
 
