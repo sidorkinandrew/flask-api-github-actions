@@ -46,7 +46,7 @@ resource "aws_security_group" "flask_api_db_sg" {
 }
 
 resource "aws_security_group" "flask_api_lt_web_sg" {
-  description = "allow 8080 / and my ssh"
+  description = "allow 80 / and my ssh"
 
   egress {
     cidr_blocks = ["0.0.0.0/0"]
@@ -65,11 +65,11 @@ resource "aws_security_group" "flask_api_lt_web_sg" {
   }
 
   ingress {
-    from_port       = "8080"
+    from_port       = "80"
     protocol        = "tcp"
     security_groups = [aws_security_group.flask_api_alb_sg.id]
     self            = "false"
-    to_port         = "8080"
+    to_port         = "80"
   }
 
   name   = "${var.tag_name}_lt_web_sg"

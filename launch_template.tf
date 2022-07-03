@@ -6,11 +6,7 @@ resource "aws_launch_template" "flask_api_lt" {
   name            = "${var.tag_name}lt"
 
   network_interfaces {
-    device_index       = "0"
-    ipv4_address_count = "0"
-    ipv4_prefix_count  = "0"
-    network_card_index = "0"
-    security_groups    = [aws_security_group.flask_api_lt_web_sg.id]
+    security_groups = [aws_security_group.flask_api_lt_web_sg.id]
   }
 
   tag_specifications {

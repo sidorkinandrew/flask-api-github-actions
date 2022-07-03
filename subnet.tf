@@ -3,6 +3,7 @@ resource "aws_subnet" "flask_api_subnet_public_01" {
   enable_resource_name_dns_a_record_on_launch = "true"
   map_public_ip_on_launch                     = "true"
   private_dns_hostname_type_on_launch         = "ip-name"
+  availability_zone                           = data.aws_availability_zones.available.names[0]
 
   tags = {
     Name = "${var.tag_name}public_01"
@@ -17,6 +18,7 @@ resource "aws_subnet" "flask_api_subnet_private_01" {
   enable_resource_name_dns_a_record_on_launch = "false"
   map_public_ip_on_launch                     = "false"
   private_dns_hostname_type_on_launch         = "ip-name"
+  availability_zone                           = data.aws_availability_zones.available.names[0]
 
   tags = {
     Name = "${var.tag_name}private_01"
@@ -30,6 +32,7 @@ resource "aws_subnet" "flask_api_subnet_public_02" {
   enable_resource_name_dns_a_record_on_launch = "true"
   map_public_ip_on_launch                     = "true"
   private_dns_hostname_type_on_launch         = "ip-name"
+  availability_zone                           = data.aws_availability_zones.available.names[1]
 
   tags = {
     Name = "${var.tag_name}public_02"
@@ -43,6 +46,7 @@ resource "aws_subnet" "flask_api_subnet_private_02" {
   enable_resource_name_dns_a_record_on_launch = "false"
   map_public_ip_on_launch                     = "false"
   private_dns_hostname_type_on_launch         = "ip-name"
+  availability_zone                           = data.aws_availability_zones.available.names[1]
 
   tags = {
     Name = "${var.tag_name}private_02"

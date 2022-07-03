@@ -1,3 +1,5 @@
+data "aws_availability_zones" "available" {}
+
 data "http" "myip" {
   url = "http://ipv4.icanhazip.com"
 }
@@ -17,4 +19,28 @@ output "aws_subnets" {
     aws_subnet.flask_api_subnet_private_01.id,
     aws_subnet.flask_api_subnet_private_02.id
   ]
+}
+
+output "aws_azs" {
+  value = data.aws_availability_zones.available.names
+}
+
+data "aws_instances" "launched_by_asg" {
+  instance_tags = {
+    "aws:autoscaling:groupName" = "flask_api_asg"
+  }
+
+  instance_state_names = ["running"]
+}
+
+output "ec2_launched_ids" {
+  value = data.aws_instances.launched_by_asg.ids
+}
+
+output "ec2_launched_ips" {
+  value = data.aws_instances.launched_by_asg.public_ips
+}
+
+output "alb_dns_name" {
+  value = aws_lb.flask_api_alb.dns_name
 }
