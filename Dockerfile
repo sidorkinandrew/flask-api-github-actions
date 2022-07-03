@@ -2,8 +2,7 @@
 FROM python:3.10.5-slim-buster
 
 # add flaskapi user
-RUN useradd flaskapi
-
+RUN groupadd -r flaskapi && useradd -r -g flaskapi flaskapi
 
 # set working directory
 WORKDIR /home/flaskapi
@@ -19,6 +18,7 @@ RUN pip3 install -r ./requirements.txt
 
 # copy project
 COPY . .
+RUN chown -R flaskapi:flaskapi /home/flaskapi
 
 EXPOSE 8000
 
