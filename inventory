@@ -1,0 +1,1 @@
+web-server ansible_host=34.244.90.118 ansible_user=ubuntu ansible_ssh_private_key_file=~/.ssh/aws-workshop-key-pair.pem
