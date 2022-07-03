@@ -1,3 +1,11 @@
+data "http" "myip" {
+  url = "http://ipv4.icanhazip.com"
+}
+
+output "my_ip" {
+  value = "${chomp(data.http.myip.body)}/32"
+}
+
 output "main_vpc_id" {
   value = aws_vpc.flask_api_vpc.id
 }
