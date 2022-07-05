@@ -4,6 +4,7 @@
   gather_facts: true
   vars:
     - destdir: /app
+    - db_endpoint: flask-api-alb-1038562102.eu-west-1.elb.amazonaws.com
   tasks:
     - name: Update all packages
       apt:
@@ -22,6 +23,7 @@
           - wget
           - mc
           - git
+          - python3-docker
 
     - name: Add Docker GPG apt Key
       apt_key:
@@ -41,6 +43,7 @@
           - docker-ce
           - docker-ce-cli
           - containerd.io
+          - docker-compose
 #          - docker-compose-plugin
         state: latest
         update_cache: true
@@ -63,10 +66,7 @@
       git:
         repo: 'https://github.com/sidorkinandrew/flask-api.git'
         dest: "/{{ destdir }}"
-
-#    - name: stat .env
-#      stat: path="{{ destdir }}/.env"
-#      register: dotenv_stat
+        force: yes
 
     - name: Move the src file to dest
       command: mv "/{{ destdir }}/.env.example" "/{{ destdir }}/.env"
@@ -74,12 +74,17 @@
         removes: "/{{ destdir }}/.env.example"
         creates: "/{{ destdir }}/.env"
 
-#    - name: Move .env.example to .env
-#      command: creates="{{ destdir}}/.env" mv "{{ destdir}}/.env.example" "{{ destdir}}/.env"
-#      when: dotnet_stat.stat.exists
+#    - name: Deploy via docker-compose
+#      community.docker.docker_compose:
+#        project_src: /app
+#        build: yes
+#        files:
+#          - docker-compose.yaml
+
 
     - name: Run the stack of containers via docker-compose
-      become: True
+      become: true
       shell:
         cmd: "docker-compose -f docker-compose.yaml up -d"
         chdir: /app/
+
