@@ -9,6 +9,7 @@ resource "aws_db_instance" "flask_api_db" {
   auto_minor_version_upgrade            = "false"
   availability_zone                     = "${var.aws_region}a"
   backup_retention_period               = "0"
+  skip_final_snapshot                   = "true"
   db_name                               = "student"
   db_subnet_group_name                  = aws_db_subnet_group.flask_api_db_subnet_group.name
   deletion_protection                   = "false"
