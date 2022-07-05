@@ -4,7 +4,8 @@
   gather_facts: true
   vars:
     - destdir: /app
-    - db_endpoint: flask-api-alb-1038562102.eu-west-1.elb.amazonaws.com
+    - db_endpoint: flask_db
+    - db_password: some_password
   tasks:
     - name: Update all packages
       apt:
@@ -73,6 +74,20 @@
       args:
         removes: "/{{ destdir }}/.env.example"
         creates: "/{{ destdir }}/.env"
+
+    - name: replacing db endpoint in .env file
+      lineinfile: 
+        path: /app/.env
+        regexp: '^(.*)DB_HOSTNAME=(.*)$' 
+        line: 'DB_HOSTNAME={{ db_endpoint }}'
+        backrefs: yes
+
+    - name: replacing db password in .env file
+      lineinfile: 
+        path: /app/.env
+        regexp: '^(.*)MYSQL_PASSWORD=(.*)$' 
+        line: 'MYSQL_PASSWORD={{ db_password }}'
+        backrefs: yes
 
 #    - name: Deploy via docker-compose
 #      community.docker.docker_compose:
