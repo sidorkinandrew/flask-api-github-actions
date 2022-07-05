@@ -50,6 +50,6 @@ output "rds_mysql_instance_endpoint" {
 }
 
 output "rds_db_password" {
-  value       = random_password.password.result
-  sensitive   = true
+  value     = random_password.password.result
+  sensitive = true
 }

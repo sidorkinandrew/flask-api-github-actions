@@ -1,6 +1,6 @@
 resource "aws_autoscaling_group" "flask_api_asg" {
   vpc_zone_identifier       = [aws_subnet.flask_api_subnet_public_01.id, aws_subnet.flask_api_subnet_public_02.id]
-  desired_capacity          = "1"
+  desired_capacity          = "2"
   force_delete              = "false"
   health_check_grace_period = "300"
   health_check_type         = "EC2"
