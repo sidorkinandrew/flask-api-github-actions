@@ -44,3 +44,12 @@ output "ec2_launched_ips" {
 output "alb_dns_name" {
   value = aws_lb.flask_api_alb.dns_name
 }
+
+output "rds_mysql_instance_endpoint" {
+  value = aws_db_instance.flask_api_db.endpoint
+}
+
+output "rds_db_password" {
+  value       = random_password.password.result
+  sensitive   = true
+}
