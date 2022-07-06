@@ -31,7 +31,7 @@ data "aws_instances" "launched_by_asg" {
   }
 
   instance_state_names = ["running"]
-  depends_on = [aws_db_instance.flask_api_db]
+  depends_on           = [aws_db_instance.flask_api_db]
 }
 
 output "ec2_launched_ids" {

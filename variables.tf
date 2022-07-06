@@ -8,10 +8,17 @@ variable "aws_region" {
 }
 
 
-variable "aws_key_name" {
-  default = "aws-workshop-key-pair"
-}
+data "aws_ami" "ubuntu-linux-2004" {
+  most_recent = true
+  owners      = ["099720109477"] # Canonical
 
-variable "ami_id" {
-  default = "ami-0f29c8402f8cce65c"
+  filter {
+    name   = "name"
+    values = ["ubuntu/images/hvm-ssd/ubuntu-focal-20.04-amd64-server-*"]
+  }
+
+  filter {
+    name   = "virtualization-type"
+    values = ["hvm"]
+  }
 }
