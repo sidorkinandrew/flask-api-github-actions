@@ -1,13 +1,23 @@
+---
 - hosts: tag_aws_autoscaling_groupName_flask_api_asg
   remote_user: ubuntu
   become: true
   gather_facts: true
 
   vars:
-    - destdir: /app
-    - db_endpoint: flask_db
-    - db_password: some_password
+    - ansible_ssh_private_key_file: ".ssh/flask-api-key-pair.pem"
+    - docker_compose_url: https://github.com/docker/compose/releases/download/1.29.2/docker-compose-Linux-x86_64
+    - github_repo: 'https://github.com/sidorkinandrew/flask-api.git' # 'git@github.com:sidorkinandrew/flask-api-private.git' # 'https://github.com/sidorkinandrew/flask-api.git'
+    - app_dir: /app
     - ssh_key_filename: my_project_key
+
+  vars_prompt:
+    - name: "db_endpoint"
+      prompt: "Enter the DB endpoint"
+    - name: "db_password"
+      prompt: "Enter the password for DB"
+    - name: "GITHUB_ACCESS_TOKEN"
+      prompt: "Add your write:public_key token from github account"
 
   tasks:
     - name: Update all packages
@@ -28,6 +38,8 @@
           - mc
           - git
           - python3-docker
+          - python3-pip
+          - python3-setuptools
 
     - name: Add Docker GPG apt Key
       apt_key:
@@ -61,79 +73,100 @@
 
     - name: Install docker-compose from official github repo
       get_url:
-        url : https://github.com/docker/compose/releases/download/1.29.2/docker-compose-Linux-x86_64
+        url: "{{ docker_compose_url }}"
         dest: /usr/local/bin/docker-compose
         mode: 'u+x,g+x'
 
-    - name: Ensure the project ssh key exists
-      openssh_keypair:
-        path: "{{ lookup('env','HOME') + '/.ssh/{{ssh_key_filename}}' }}"
-        type: ed25519
+    - name: Generate SSH key "{{ssh_key_filename}}"
       delegate_to: localhost
-      run_once: true
-      register: ssh_key
+      run_once: yes
+      become: no
+      user:
+        name: "{{ ansible_user }}"
+        generate_ssh_key: yes
+        ssh_key_type: ed25519
+        ssh_key_file: .ssh/{{ ssh_key_filename }}
+        force: no
 
-    - name: Copy the project ssh keys to instances
-      vars_prompt:
-        - name: "waiting_for_ssh_added_to_github"
-          prompt: "Press <Enter> once this public key added to Github:\n {{ssh_key.public_key}}\n"
-      become: true
-      authorized_key:
-        user: "{{ lookup('env', 'USER') }}"
-        key: "{{ lookup('file', lookup('env','HOME') + '/.ssh/{{ssh_key_filename}}.pub') }}"
-        state: present
+    - name: the public key output
+      pause:
+        prompt: "{{ lookup('file', lookup('env','HOME') + '/.ssh/{{ ssh_key_filename }}.pub') }}"
+
+    - name: Add SSH public key to GitHub account
+      uri:
+        url: https://api.github.com/user/keys
+        validate_certs: no
+        method: POST
+        body:
+          title: "Ansible-generated deploy key"
+          key: "{{ lookup('file', lookup('env','HOME') + '/.ssh/{{ ssh_key_filename }}.pub') }}"
+        body_format: json
+        headers:
+          Content-Type: "application/json"
+          Authorization: "token {{ GITHUB_ACCESS_TOKEN }}"
+      register: task_log
+      run_once: yes
+      failed_when: task_log.content.find('"key is already in use"') == 0
+
+    - name: Ensure the private key is present on the remotes
+      copy: 
+        src: "{{ lookup('env','HOME') }}/.ssh/{{ ssh_key_filename }}"
+        dest: "/home/{{ ansible_user }}/.ssh/{{ ssh_key_filename }}" 
+        mode: 0400
 
     - name: Restart secure shell daemon post configuration
       service: 
         name: sshd
         state: restarted
 
-#    - name: Copy the generated ssh key to remote server
-#      authorized_key:
-#        user: "{{ansible_user}}"
-#        key: "{{item}}"
-#      with_file:
-#        - ".ssh/{{ssh_key_filename}}.pub"
 
-    - name: Download the Flask REST API code from the GitRepo
-      become: yes
+
+    - name: Clone the code repository to the app_dir
       git:
-        repo: 'https://github.com/sidorkinandrew/flask-api.git'
-        dest: "/{{ destdir }}"
+        repo: "{{ github_repo }}"
+        dest: "{{ app_dir }}"
         force: yes
+        accept_hostkey: yes
+        key_file: "/home/{{ ansible_user }}/.ssh/{{ ssh_key_filename }}"
 
-    - name: Move the src file to dest
-      command: mv "/{{ destdir }}/.env.example" "/{{ destdir }}/.env"
+    - name: Rename .env.example to .env
+      command: mv "{{ app_dir }}/.env.example" "{{ app_dir }}/.env"
       args:
-        removes: "/{{ destdir }}/.env.example"
-        creates: "/{{ destdir }}/.env"
+        removes: "{{ app_dir }}/.env.example"
+        creates: "{{ app_dir }}/.env"
 
     - name: replacing db endpoint in .env file
       lineinfile: 
-        path: /app/.env
+        path: "{{ app_dir }}/.env"
         regexp: '^(.*)DB_HOSTNAME=(.*)$' 
         line: 'DB_HOSTNAME={{ db_endpoint }}'
         backrefs: yes
 
     - name: replacing db password in .env file
       lineinfile: 
-        path: /app/.env
+        path: "{{ app_dir }}/.env"
         regexp: '^(.*)MYSQL_PASSWORD=(.*)$' 
         line: 'MYSQL_PASSWORD={{ db_password }}'
         backrefs: yes
 
-# not working correctly for 16.04 ubuntu
-#    - name: Deploy via docker-compose
-#      community.docker.docker_compose:
-#        project_src: /app
-#        build: yes
-#        files:
-#          - docker-compose.yaml
+    - name: Deploy via docker-compose
+      community.docker.docker_compose:
+        project_src: "{{ app_dir }}"
+        state: absent
+        files:
+          - docker-compose.yaml
 
+    - name: Deploy via docker-compose
+      community.docker.docker_compose:
+        project_src: "{{ app_dir }}"
+        build: yes
+        state: present
+        files:
+          - docker-compose.yaml
 
-    - name: Run the stack of containers via docker-compose
-      become: true
-      shell:
-        cmd: "docker-compose -f docker-compose.yaml up -d"
-        chdir: /app/
+#    - name: Run the stack of containers via docker-compose
+#      become: true
+#      shell:
+#        cmd: "docker-compose -f docker-compose.yaml up -d"
+#        chdir: /app/
 
