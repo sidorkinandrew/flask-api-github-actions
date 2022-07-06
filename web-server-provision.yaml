@@ -2,11 +2,13 @@
   remote_user: ubuntu
   become: true
   gather_facts: true
+
   vars:
     - destdir: /app
     - db_endpoint: flask_db
     - db_password: some_password
     - ssh_key_filename: my_project_key
+
   tasks:
     - name: Update all packages
       apt:
@@ -46,7 +48,7 @@
           - docker-ce-cli
           - containerd.io
           - docker-compose
-#          - docker-compose-plugin
+          - docker-compose-plugin
         state: latest
         update_cache: true
 
@@ -63,19 +65,28 @@
         dest: /usr/local/bin/docker-compose
         mode: 'u+x,g+x'
 
-    - name: "Ensure project ssh key exists"
+    - name: Ensure the project ssh key exists
       openssh_keypair:
         path: "{{ lookup('env','HOME') + '/.ssh/{{ssh_key_filename}}' }}"
         type: ed25519
       delegate_to: localhost
       run_once: true
+      register: ssh_key
 
-    - name: "Copy project ssh keys"
+    - name: Copy the project ssh keys to instances
+      vars_prompt:
+        - name: "waiting_for_ssh_added_to_github"
+          prompt: "Press <Enter> once this public key added to Github:\n {{ssh_key.public_key}}\n"
       become: true
       authorized_key:
         user: "{{ lookup('env', 'USER') }}"
         key: "{{ lookup('file', lookup('env','HOME') + '/.ssh/{{ssh_key_filename}}.pub') }}"
         state: present
+
+    - name: Restart secure shell daemon post configuration
+      service: 
+        name: sshd
+        state: restarted
 
 #    - name: Copy the generated ssh key to remote server
 #      authorized_key:
@@ -111,6 +122,7 @@
         line: 'MYSQL_PASSWORD={{ db_password }}'
         backrefs: yes
 
+# not working correctly for 16.04 ubuntu
 #    - name: Deploy via docker-compose
 #      community.docker.docker_compose:
 #        project_src: /app
