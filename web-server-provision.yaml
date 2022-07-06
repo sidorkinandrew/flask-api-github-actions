@@ -6,6 +6,7 @@
     - destdir: /app
     - db_endpoint: flask_db
     - db_password: some_password
+    - ssh_key_filename: my_project_key
   tasks:
     - name: Update all packages
       apt:
@@ -61,6 +62,27 @@
         url : https://github.com/docker/compose/releases/download/1.29.2/docker-compose-Linux-x86_64
         dest: /usr/local/bin/docker-compose
         mode: 'u+x,g+x'
+
+    - name: "Ensure project ssh key exists"
+      openssh_keypair:
+        path: "{{ lookup('env','HOME') + '/.ssh/{{ssh_key_filename}}' }}"
+        type: ed25519
+      delegate_to: localhost
+      run_once: true
+
+    - name: "Copy project ssh keys"
+      become: true
+      authorized_key:
+        user: "{{ lookup('env', 'USER') }}"
+        key: "{{ lookup('file', lookup('env','HOME') + '/.ssh/{{ssh_key_filename}}.pub') }}"
+        state: present
+
+#    - name: Copy the generated ssh key to remote server
+#      authorized_key:
+#        user: "{{ansible_user}}"
+#        key: "{{item}}"
+#      with_file:
+#        - ".ssh/{{ssh_key_filename}}.pub"
 
     - name: Download the Flask REST API code from the GitRepo
       become: yes
