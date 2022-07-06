@@ -8,4 +8,5 @@ __pycache__/
 terraform.tfstate
 terraform.tfstate.backup
 terraform.tfstate.*
+.terraform.tfstate.*
 *.pem
