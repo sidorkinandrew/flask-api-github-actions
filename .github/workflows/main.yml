@@ -5,6 +5,9 @@ on:
     branches:
       - main
 
+env:
+  REGISTRY: dyvosvit/ci-cd-flask-api
+
 jobs:
   lint:
     runs-on: [self-hosted]
@@ -44,3 +47,11 @@ jobs:
 
       - name: show credentials
         run: echo ${{ secrets.DOCKERHUB_USERNAME }}
+
+      - name: Build and push
+        uses: docker/build-push-action@v3
+        with:
+          context: .
+          push: true
+          tags: |
+            ${{ env.REGISTRY }}:${{ steps.commit_hash.outputs.commit_hash }}
