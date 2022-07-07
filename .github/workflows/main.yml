@@ -7,7 +7,7 @@ on:
 
 jobs:
   lint:
-    runs-on: [self-hosted]
+    runs-on: [self-hosted, ubuntu-latest]
     name: Lint
     steps:
 
