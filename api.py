@@ -1,12 +1,11 @@
 import json
 import os
 import inspect
-import re
 
-from flask import Flask, jsonify, request, render_template, Response
+from flask import Flask, jsonify, request, render_template
 from flask_sqlalchemy import SQLAlchemy
 import dotenv
-from sqlalchemy import MetaData, create_engine
+from sqlalchemy import create_engine
 from sqlalchemy_utils import database_exists, create_database
 from marshmallow import Schema, fields
 from sqlalchemy.orm.attributes import InstrumentedAttribute
@@ -18,9 +17,9 @@ db_pass = os.environ.get("MYSQL_PASSWORD")
 db_hostname = os.environ.get("DB_HOSTNAME")
 db_name = os.environ.get("MYSQL_DATABASE")
 
-DB_URI = "mysql+pymysql://{db_username}:{db_password}@{db_host}/{database}".format(
-    db_username=db_user, db_password=db_pass, db_host=db_hostname, database=db_name
-)
+DB_URI = "mysql+pymysql://{db_username}:{db_password}@{db_host}/\
+   {database}".format(db_username=db_user, db_password=db_pass,
+                      db_host=db_hostname, database=db_name)
 
 # init the DB driver
 engine = create_engine(DB_URI, echo=True)
@@ -30,6 +29,7 @@ app = Flask(__name__)
 app.config["SQLALCHEMY_DATABASE_URI"] = DB_URI
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 db = SQLAlchemy(app)
+
 
 # SQLAlchemy ORM object
 class Student(db.Model):
@@ -55,7 +55,8 @@ class Student(db.Model):
                 updated_values[akey] = getattr(self, akey)
         updated_values.update(json_data)
 
-        db.session.query(Student).filter(Student.id == self.id).update(updated_values)
+        db.session.query(Student).filter(Student.id == self.id)\
+                                 .update(updated_values)
         db.session.commit()
 
     def save(self):
@@ -84,7 +85,7 @@ def generate_swagger_api_doc():
     return_code = 200
     result = json.load(open("static/openapi.json"))
     result["paths"] = {}
-    result['servers'][0]['url'] = "http://"+request.headers.get('Host')+"/"
+    result["servers"][0]["url"] = "http://" + request.headers.get("Host") + "/"
     source_code = {}
     data_body = [
         {
@@ -109,15 +110,18 @@ def generate_swagger_api_doc():
         rule = map_object.__getattribute__("rule")
         if "/static" in rule:
             continue
-        rule = rule if "<int:id>" not in rule else rule.replace("<int:id>", "{id}")
+        rule = rule if "<int:id>" not in rule else rule.replace(
+           "<int:id>", "{id}")
         method = list(
-            set(map_object.__getattribute__("methods")) - set(["OPTIONS", "HEAD"])
+            set(map_object.__getattribute__("methods"))
+            - set(["OPTIONS", "HEAD"])
         )[0].lower()
         operationId = map_object.__getattribute__("endpoint")
-        source_code[rule] = "".join(inspect.getsource(eval(operationId))).replace(
-            "\n", " "
-        )
-        status_code = source_code[rule].split("return_code = ")[1].split(" ")[0]
+        source_code[rule] = "".join(inspect.
+                                    getsource(eval(operationId))).replace(
+                                    "\n", " ")
+        status_code = source_code[rule].split(
+                      "return_code = ")[1].split(" ")[0]
         parameters = list(map_object.__getattribute__("arguments"))
         parameters = (
             parameters[0] if len(parameters) > 0 else []
@@ -127,7 +131,8 @@ def generate_swagger_api_doc():
                 "tags": ["student"],
                 "produces": ["application/json"],
                 "responses": {
-                    status_code: {"description": "the operation was successful"}
+                  status_code: {"description":
+                                "the operation was successful"}
                 },
             }
         }
@@ -141,15 +146,18 @@ def generate_swagger_api_doc():
     json.dump(result, open("static/openapi.json", "w"))
     return render_template("swaggerui.html"), return_code
 
+
 @app.route("/api/health-check/ok", methods=["GET"])
 def health_check_ok():
     return_code = 200
     return {}, return_code
 
+
 @app.route("/api/health-check/bad", methods=["GET"])
 def health_check_bad():
     return_code = 500
     return {}, return_code
+
 
 @app.route("/api/students", methods=["GET"])
 def get_all_students():
