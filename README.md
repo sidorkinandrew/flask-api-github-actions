@@ -20,7 +20,7 @@ cp .env.example .env
 - run docker-compose to build the flask_api image and create the services
 
 ```bash
-docker-compose up -d
+docker-compose up -d --build
 ```
 
 - use the generated Swagger 2.0 endpoint to excercise the provided REST API
