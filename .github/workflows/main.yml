@@ -10,7 +10,7 @@ env:
 
 jobs:
   lint:
-    runs-on: [self-hosted]
+    runs-on: [ubuntu]
     name: Lint
     steps:
 
@@ -27,7 +27,7 @@ jobs:
 
 
   build_and_push:
-    runs-on: [self-hosted]
+    runs-on: [ubuntu]
     name: Build and push docker image
     outputs:
       commit_hash: ${{ steps.commit_hash.outputs.commit_hash }}
@@ -57,7 +57,7 @@ jobs:
             ${{ env.REGISTRY }}:${{ steps.commit_hash.outputs.commit_hash }}
 
   deploy:
-    runs-on: [self-hosted]
+    runs-on: [ubuntu]
     name: Deploy docker
     needs: build_and_push
     env:
