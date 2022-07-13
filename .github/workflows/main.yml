@@ -7,7 +7,6 @@ on:
 
 env:
   REGISTRY: dyvosvit/ci-cd-flask-api
-  EC2s: [54.247.18.179, 54.217.144.186]
 
 jobs:
   lint:
@@ -62,7 +61,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        host: ${{ env.EC2s }}
+        host: [54.247.18.179, 54.217.144.186]
         username: [ubuntu]
     runs-on: [ubuntu-latest]
     name: Deploy docker
@@ -92,7 +91,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        host: ${{ env.EC2s }}
+        host: [54.247.18.179, 54.217.144.186]
     runs-on: [ubuntu-latest]
     name: Report instances are running
     needs: deploy
