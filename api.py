@@ -17,9 +17,9 @@ db_pass = os.environ.get("MYSQL_PASSWORD")
 db_hostname = os.environ.get("DB_HOSTNAME")
 db_name = os.environ.get("MYSQL_DATABASE")
 
-DB_URI = "mysql+pymysql://{db_username}:{db_password}@{db_host}/\
-   {database}".format(db_username=db_user, db_password=db_pass,
-                      db_host=db_hostname, database=db_name)
+DB_URI = "mysql+pymysql://{db_username}:{db_password}@{db_host}/{database}"\
+         .format(db_username=db_user, db_password=db_pass,
+                 db_host=db_hostname, database=db_name)
 
 # init the DB driver
 engine = create_engine(DB_URI, echo=True)
