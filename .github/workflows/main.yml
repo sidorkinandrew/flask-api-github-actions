@@ -62,10 +62,10 @@ jobs:
     name: Deploy docker
     needs: build_and_push
     env:
-      HOST: 54.217.144.186
+      HOST: 54.247.18.179
       USERNAME: ubuntu
     steps:
-      - name: Deploy to ${{ env.HOST }} instanse via SSH action
+      - name: Deploy to ${{ env.HOST }} instance via SSH action
         uses: appleboy/ssh-action@v0.1.3
         with:
           host: ${{ env.HOST }}
@@ -84,3 +84,6 @@ jobs:
             --restart always \
             --network=flask-api-github-actions_flask_network \
             ${{ env.REGISTRY }}:${{ needs.build_and_push.outputs.commit_hash }}
+
+      - name: curl the api endpoint on the ${{ env.HOST }} instance
+        run: curl http://${{ env.HOST }}/api
