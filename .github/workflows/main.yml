@@ -62,7 +62,7 @@ jobs:
     name: Deploy docker
     needs: build_and_push
     env:
-      HOST: 52.30.248.47
+      HOST: 54.217.144.186
       USERNAME: ubuntu
     steps:
       - name: Deploy to ${{ env.HOST }} instanse via SSH action
@@ -76,11 +76,11 @@ jobs:
           script: |
             # login docker
             docker login -u $DOCKERHUB_USERNAME -p $DOCKERHUB_TOKEN
-            docker stop flask-app
-            docker rm flask-app
+            docker stop flask_app
+            docker rm flask_app
             # Run a new container from a new image
             docker run -d \
+            --name=flask_app \
             --restart always \
-            -p 80:5000 \
-            --name flask-app \
+            --network=flask-api-github-actions_flask_network \
             ${{ env.REGISTRY }}:${{ needs.build_and_push.outputs.commit_hash }}
