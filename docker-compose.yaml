@@ -6,6 +6,8 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+    depends_on:
+      - db
     env_file: .env
     networks:
       flask_network:
@@ -23,6 +25,30 @@ services:
       - flask_app
     networks:
       - flask_network
+  db:
+    image: mysql:8-debian
+    restart: always
+    container_name: ${DB_HOSTNAME}
+    ports:
+      - "3307:3306"
+    env_file: .env
+    volumes:
+      - flask_volume:/var/lib/mysql
+    networks:
+      - flask_network
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "mysqladmin",
+          "ping",
+          "-h",
+          "127.0.0.1",
+          "--silent"
+        ]
+      interval: 3s
+      retries: 5
+      start_period: 30s
 volumes:
   flask_volume:
 networks:
