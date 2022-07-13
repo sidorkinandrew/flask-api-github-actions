@@ -7,6 +7,7 @@ on:
 
 env:
   REGISTRY: dyvosvit/ci-cd-flask-api
+  EC2s: [54.247.18.179, 54.217.144.186]
 
 jobs:
   lint:
@@ -59,8 +60,9 @@ jobs:
 
   deploy:
     strategy:
+      fail-fast: false
       matrix:
-        host: [54.247.18.179, 54.217.144.186]
+        host: ${{ env.EC2s }}
         username: [ubuntu]
     runs-on: [ubuntu-latest]
     name: Deploy docker
@@ -86,5 +88,14 @@ jobs:
             --network=flask-api-github-actions_flask_network \
             ${{ env.REGISTRY }}:${{ needs.build_and_push.outputs.commit_hash }}
 
+  report:
+    strategy:
+      fail-fast: false
+      matrix:
+        host: ${{ env.EC2s }}
+    runs-on: [ubuntu-latest]
+    name: Report instances are running
+    needs: deploy
+    steps:
       - name: curl the api endpoint on the ${{ matrix.host }} instance
-        run: sleep 10 && curl http://${{ matrix.host }}/api
+        run: curl http://${{ matrix.host }}/api
